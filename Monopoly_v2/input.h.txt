@@ -3,7 +3,3 @@
 
 void inputInit();
 void inputUpdate();
-
-int batteryPercent(float v);
-float readBatteryVoltage();
-

@@ -17,19 +17,13 @@ void drawHelpScreen();
 
 void uiShowSettingsMenu();
 void uiShowSettingsGame();
-void uiShowSettingsSystem();
-void uiShowRTCTest() ;
-void uiShowBatteryTest();
-void uiShowServiceMenu();
-void uiShowSettingsCurrency();
-void uiShowSettingsSysInfo();
-extern RTC_DS1307 rtc;
+
 // Отрисовка заголовка игрового режима (время игры + текущее время)
 void drawGameHeader(DateTime now, uint32_t gameSeconds);
 
 void showSplash();
 // --- Экраны главного меню ---
-// void uiShowSplash();
+void uiShowSplash();
 void uiShowMainMenu(bool hasSave);
 void drawHelpQR();
 // --- Мастер новой игры ---
@@ -45,11 +39,10 @@ void uiShowGame_WaitCard(DateTime now, uint32_t gameSeconds);
 void uiShowGame_PlayerMenu(const char* name, int balance);
 void uiShowGame_SelectPlayer();
 void uiShowGame_EnterAmount(long amount);
-void uiShowGame_Result(const char* line1, const char* line2, const char* line3);
-
+void uiShowGame_Result(const char* line2, const char* line3);
+void uiShowGame_Undo_NoAction();
+void uiShowGame_Undo_Action(const char* line2, const char* line3);
 void uiShowGame_Balances(int count, int balances[]);
-void uiShowPlayerFinish(const char* name);
-void showBankruptFlash(int idx);
 // --- Новый ввод суммы ---
 void uiShowGame_SumPreset();
 void uiShowGame_SumManual(long amount);

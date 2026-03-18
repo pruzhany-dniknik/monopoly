@@ -2,6 +2,7 @@
 #include "menu.h"
 #include "players.h"
 #include "ui.h"
+
 #include <SoftwareSerial.h>
 
 SoftwareSerial nanoSerial(12, 16);
@@ -10,8 +11,6 @@ String inputLine;
 
 void inputInit() {
   nanoSerial.begin(115200);
-  Serial.begin(115200);
-  delay(500);
 }
 
 bool parseUID(String line, byte outUID[4]) {
@@ -37,9 +36,8 @@ bool parseUID(String line, byte outUID[4]) {
 
 void inputUpdate() {
   while (nanoSerial.available()) {
-
     char c = nanoSerial.read();
-    Serial.println(c);
+    
     if (c == '\n' || c == '\r') {
       if (inputLine.length() > 0) {
 
@@ -51,7 +49,6 @@ void inputUpdate() {
         // -----------------------------
         if (line.startsWith("KEY ")) {
           String k = line.substring(4);
-          // Serial.println(k);
           if (k.length() > 0) menuHandleKey(k);
         }
 
@@ -59,7 +56,7 @@ void inputUpdate() {
         // ОБРАБОТКА КАРТЫ
         // -----------------------------
         else if (line.startsWith("CARD ")) {
-          // Serial.println("card");
+
           byte uid[4];
           if (parseUID(line, uid)) {
 
@@ -73,16 +70,6 @@ void inputUpdate() {
             if (gameActive) {
               int idx = findPlayerByUID(uid);
               if (idx >= 0) {
-                // --- ПРОВЕРКА НА БАНКРОТА ---
-                bool bankrupt = false;
-
-                if (players[idx].eliminated) bankrupt = true;
-                if (settings.autoEndGame && players[idx].balance == 0) bankrupt = true;
-
-                if (bankrupt) {
-                  showBankruptFlash(idx);
-                  return;  // НЕ пускаем в меню
-                }
                 activePlayerIndex = idx;
                 setMenuState(STATE_GAME_PLAYERMENU);
               }
@@ -95,16 +82,4 @@ void inputUpdate() {
       if (inputLine.length() > 64) inputLine = "";
     }
   }
-}
-
-float readBatteryVoltage() {
-  int raw = analogRead(A0);
-  float v = (raw / 1023.0) * 1.0;  // ESP ADC 1.0V max
-  return v * 2.0;                  // делитель 100k/100k
-}
-
-int batteryPercent(float v) {
-  if (v >= 4.20) return 100;
-  if (v <= 3.00) return 0;
-  return (int)((v - 3.00) * (100.0 / 1.20));  // линейно 3.0–4.2 В
 }

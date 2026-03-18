@@ -11,18 +11,19 @@
 MFRC522 mfrc522(SS_PIN, RST_PIN);
 
 // Клавиатура 4x5
-const byte ROWS = 5;
-const byte COLS = 4;
-
+const byte ROWS = 5,
+           COLS = 4,
+           Md = 6, Ld = 15, Sd = 20;
 char keys[ROWS][COLS] = {
   { 'L', '0', 'R', 'N' },
   { '7', '8', '9', 'E' },
   { '4', '5', '6', 'D' },
-  { 'F', 'H', '#', '*' },
-  { '1', '2', '3', 'U' }
+  { '1', '2', '3', 'U' },
+  { 'F', 'H', '#', '*' }
+
 };
 
-byte rowPins[ROWS] = { A3, 7, 8, 14, 15 };
+byte rowPins[ROWS] = { 7, 8, 14, 15, 17 };
 byte colPins[COLS] = { 2, 3, 4, 5 };
 
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
@@ -35,43 +36,43 @@ void beepTone(int freq, int dur) {
 
 void beepDigit(char k) {
   int base = 900;
-  if (k == '0') beepTone(1400, 40);
-  else beepTone(base + (k - '1') * 50, 40);
+  if (k == '0') beepTone(1400, Md);
+  else beepTone(base + (k - '1') * 50, Md);
 }
 
 void beepArrow() {
-  beepTone(3250, 20);
+  beepTone(3250, Md);
 }
 
 void beepEnter() {
-  beepTone(1800, 40);
+  beepTone(1800, Md);
 }
 
 void beepEsc() {
-  beepTone(600, 40);
+  beepTone(600, Md);
 }
 
 void beepDelete() {
-  beepTone(500, 60);
+  beepTone(500, Md);
 }
 
 void beepService(char k) {
-  if (k == '#') beepTone(1600, 40);
-  else if (k == '*') beepTone(800, 40);
-  else if (k == 'F' || k == 'H') beepTone(2000, 25);
+  if (k == '#') beepTone(1200, Md);
+  else if (k == '*') beepTone(800, Md);
+  else if (k == 'F' || k == 'H') beepTone(600, Md);
 }
 
 void beepCard() {
-  beepTone(1200, 40);
+  beepTone(1200, Md);
   delay(80);
-  beepTone(1500, 40);
+  beepTone(1500, Md);
   delay(80);
-  beepTone(1800, 80);
+  beepTone(1800, Ld);
 }
 // подсветка
 bool backlightOn = true;
 byte levels[] = { 0, 20, 50, 160, 255 };
-int levelIndex = 4;  // стартуем с 100%
+int levelIndex = 3;  // стартуем с 70%
 unsigned long lastKeyTime = 0;
 const unsigned long AUTO_OFF_MS = 2UL * 60UL * 1000UL;  // 5 минут
 bool autoDimmed = false;
@@ -99,6 +100,7 @@ void onF1Pressed() {
 
 void setup() {
   Serial.begin(115200);
+
   // EEPROM.begin();
 
   pinMode(BUZZER_PIN, OUTPUT);
@@ -108,7 +110,7 @@ void setup() {
   if (levelIndex > 4) levelIndex = 4;
   pinMode(PIN_BACKLIGHT, OUTPUT);
   digitalWrite(PIN_BACKLIGHT, LOW);
-  currentPWM = levels[levelIndex]; 
+  currentPWM = levels[levelIndex];
   analogWrite(PIN_BACKLIGHT, currentPWM);
   lastKeyTime = millis();
 

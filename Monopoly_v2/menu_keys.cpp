@@ -1,3 +1,4 @@
+// menu_keys.cpp
 #include "menu.h"
 #include "ui.h"
 #include "players.h"
@@ -24,7 +25,7 @@ extern RTC_DS1307 rtc;
 extern DateTime gameStartTime;
 extern bool gameActive;
 
-extern LastAction lastAction;
+// extern LastAction lastAction;
 
 // extern long clampAmount(long value);
 extern long presetAmounts[5];
@@ -44,23 +45,9 @@ void menuHandleKey(String key) {
       return;
     }
   }
-  if (menuState == STATE_SETTINGS_MENU) {
-    settingsHandleKey(key);
-    return;
-  }
-
-  if (menuState == STATE_SETTINGS_GAME || menuState == STATE_SETTINGS_SYSTEM || menuState == STATE_SETTINGS_WIFI) {
-
-    if (key == "E") {
-      setMenuState(STATE_SETTINGS_MENU);
-      return;
-    }
-  }
-
 
   // --- Режим справки ---
   if (helpMode) {
-
     if (key == "L") {
       if (helpPageIndex > 0) helpPageIndex--;
       drawHelpScreen();
@@ -71,11 +58,9 @@ void menuHandleKey(String key) {
       helpMode = false;
       setMenuState(STATE_MAIN_MENU);
     }
-
     return;
   }
-
-
+  //------------------------------------------------------
   switch (menuState) {
 
     // -------------------------------------------------
@@ -88,117 +73,84 @@ void menuHandleKey(String key) {
       if (key == "4") setMenuState(MENU_HELP);
       break;
 
-    // -----------------------------
-    // МЕНЮ НАСТРОЕК
-    // -----------------------------
+      // -----------------------------
+      // МЕНЮ НАСТРОЕК
+      // -----------------------------
     case STATE_SETTINGS_MENU:
-      if (key == "E") {
-        setMenuState(STATE_MAIN_MENU);
-      } else if (key == "1") {
-        setMenuState(STATE_SETTINGS_GAME);
-      } else if (key == "2") {
-        setMenuState(STATE_SETTINGS_SYSTEM);
-      } else if (key == "3") {
-        setMenuState(STATE_SETTINGS_WIFI);
-      }
+      if (key == "E") {setMenuState(STATE_MAIN_MENU);break;}
+      if (key == "1") {setMenuState(STATE_SETTINGS_GAME);break;}
+      if (key == "2") {setMenuState(STATE_SETTINGS_SYSTEM);break;}
+      if (key == "3") {setMenuState(STATE_SETTINGS_SERVICE);break;}
+      if (key == "#") {setMenuState(STATE_SETTINGS_SAVE);break;}
       break;
 
-      // -----------------------------
-      // ПОДМЕНЮ НАСТРОЕК ИГРЫ
-      // -----------------------------
+    case STATE_SETTINGS_SYSTEM:
+      if (key == "1") {setMenuState(STATE_SETTINGS_CURRENCY);break;}
+      if (key == "2") { break;} // пока пусто
+      if (key == "3") { break;} // пока пусто
+      if (key == "4") {setMenuState(STATE_SETTINGS_SYSINFO);break;}
+      if (key == "E") {setMenuState(STATE_SETTINGS_MENU);break;}
+      break;
+
+    case STATE_SETTINGS_CURRENCY:
+      if (key == "1") {settings.currency = 0;setMenuState(STATE_SETTINGS_CURRENCY);break;}
+      if (key == "2") {settings.currency = 1;setMenuState(STATE_SETTINGS_CURRENCY);break;}
+      if (key == "3") {settings.currency = 2;setMenuState(STATE_SETTINGS_CURRENCY);break;}
+      if (key == "4") {settings.currency = 3;setMenuState(STATE_SETTINGS_CURRENCY);break;}
+      if (key == "N") {setMenuState(STATE_SETTINGS_SYSTEM);break;}
+      break;
+
+    case STATE_SETTINGS_SYSINFO:
+      if (key == "E") {setMenuState(STATE_SETTINGS_SYSTEM);}
+      break;
+
+    case STATE_SETTINGS_RTC_TEST:
+    case STATE_SETTINGS_BATTERY_TEST:
+      if (key == "E") {setMenuState(STATE_SETTINGS_SERVICE);}
+      break;
+
+    // -----------------------------
+    // ПОДМЕНЮ НАСТРОЕК ИГРЫ
+    // -----------------------------
     case STATE_SETTINGS_GAME:
-
-      if (key == "E") {
-        setMenuState(STATE_SETTINGS_MENU);
-        break;
-      }
-
-      if (key == "1") {
-        tempValue = settings.maxBalance;
-        setMenuState(STATE_SETTINGS_GAME_EDIT_MAXBALANCE);
-        break;
-      }
-
-      if (key == "2") {
-        settings.confirmLargeOps = !settings.confirmLargeOps;
-        settingsSave();
-        uiShowSettingsGame();
-        break;
-      }
-
-      if (key == "3") {
-        tempValue = settings.largeOpThreshold;
-        setMenuState(STATE_SETTINGS_GAME_EDIT_THRESHOLD);
-        break;
-      }
-
-      if (key == "4") {
-        settings.autoEndGame = !settings.autoEndGame;
-        settingsSave();
-        uiShowSettingsGame();
-        break;
-      }
-
+      if (key == "E") {setMenuState(STATE_SETTINGS_MENU);break;}
+      if (key == "1") {tempValue = settings.maxBalance;       
+        setMenuState(STATE_SETTINGS_GAME_EDIT_MAXBALANCE);break;}
+      if (key == "2") {settings.confirmLargeOps = !settings.confirmLargeOps;
+        uiShowSettingsGame();break;}
+      if (key == "3") {tempValue = settings.largeOpThreshold;
+        setMenuState(STATE_SETTINGS_GAME_EDIT_THRESHOLD);break;}
+      if (key == "4") {settings.autoEndGame = !settings.autoEndGame;
+        uiShowSettingsGame();break;}
       break;
-
 
     case STATE_SETTINGS_GAME_EDIT_MAXBALANCE:
-      if (key == "E") {
-        setMenuState(STATE_SETTINGS_GAME);
-        break;
-      }
-      if (key == "N") {
-        settings.maxBalance = tempValue;
-        settingsSave();
-        setMenuState(STATE_SETTINGS_GAME);
-        break;
-      }
-      // цифры
+      if (key == "E") {setMenuState(STATE_SETTINGS_GAME);break;}
+      if (key == "N") {settings.maxBalance = tempValue;
+        setMenuState(STATE_SETTINGS_GAME);break;}
       if (key >= "0" && key <= "9") {
         tempValue = tempValue * 10 + key.toInt();
-        uiShowEditMaxBalance(tempValue);
-        break;
-      }
-      // удаление последней цифры
-      if (key == "L") {
-        tempValue /= 10;
-        uiShowEditMaxBalance(tempValue);
-        break;
-      }
+        uiShowEditMaxBalance(tempValue);break;}
+      if (key == "L") { tempValue /= 10; // удаление последней цифры
+        uiShowEditMaxBalance(tempValue);break;}
       break;
 
     case STATE_SETTINGS_GAME_EDIT_THRESHOLD:
-      if (key == "E") {
-        setMenuState(STATE_SETTINGS_GAME);
-        break;
-      }
-      if (key == "N") {
-        settings.largeOpThreshold = tempValue;
-        settingsSave();
-        setMenuState(STATE_SETTINGS_GAME);
-        break;
-      }
+      if (key == "E") {setMenuState(STATE_SETTINGS_GAME);break;}
+      if (key == "N") {settings.largeOpThreshold = tempValue;
+        setMenuState(STATE_SETTINGS_GAME);break;}
       if (key >= "0" && key <= "9") {
-        tempValue = tempValue * 10 + key.toInt();
-        uiShowEditThreshold(tempValue);
-        break;
-      }
-      if (key == "L") {
-        tempValue /= 10;
-        uiShowEditThreshold(tempValue);
-        break;
-      }
+        tempValue = tempValue * 10 + key.toInt();uiShowEditThreshold(tempValue);break;}
+      if (key == "L") {tempValue /= 10;uiShowEditThreshold(tempValue);break;}
       break;
 
-
-    case STATE_SETTINGS_SYSTEM:
-    case STATE_SETTINGS_WIFI:
-      if (key == "E") {
-        setMenuState(STATE_SETTINGS_MENU);
-      }
-      // сюда потом добавим обработку цифр
+    case STATE_SETTINGS_SERVICE:
+      if (key == "E") {setMenuState(STATE_SETTINGS_MENU);break;}
+      if (key == "1") {setMenuState(STATE_SETTINGS_RTC_TEST);break;}
+      if (key == "2") {setMenuState(STATE_SETTINGS_BATTERY_TEST);break;}
+      if (key == "3") {drawScreen("WiFi", "...", "...", "...", "[Esc] Назад");break;}
       break;
-
+  
     // -------------------------------------------------
     // МАСТЕР НОВОЙ ИГРЫ
     // -------------------------------------------------
@@ -255,7 +207,7 @@ void menuHandleKey(String key) {
         resetAllBalances();
         gameStartTime = rtc.now();
         gameActive = true;
-        lastAction.valid = false;
+        // lastAction.valid = false;
         saveGameState();
         setMenuState(STATE_GAME_WAITCARD);
       }
@@ -266,7 +218,7 @@ void menuHandleKey(String key) {
     // ИГРОВОЙ РЕЖИМ
     // -------------------------------------------------
     case STATE_GAME_WAITCARD:
-      if (key == "E") setMenuState(STATE_GAME_UNDO);
+      
       if (key == "#") {
         saveGameState();
         setMenuState(STATE_MAIN_MENU);
@@ -290,21 +242,52 @@ void menuHandleKey(String key) {
         amountNextState = STATE_GAME_BANK_GET;  // после выбора суммы пойдём сюда
         setMenuState(STATE_GAME_SUM_PRESET);
       }
+      if (key == "4") {
+        setMenuState(STATE_GAME_PLAYER_FINISH);
+      }
+
 
       if (key == "E") setMenuState(STATE_GAME_WAITCARD);
       break;
 
     case STATE_GAME_TRANSFER_SELECTPLAYER:
       if (key == "E") setMenuState(STATE_GAME_PLAYERMENU);
+      if (key == "*") {
+        transferTargetIndex = -1;  // специальный код: всем игрокам
+        transferAmount = 0;
+        amountNextState = STATE_GAME_TRANSFER_SUM;
+        setMenuState(STATE_GAME_SUM_PRESET);
+        break;
+      }
+
       if (key.length() == 1 && key[0] >= '1' && key[0] <= '8') {
         int idx = key.toInt() - 1;
         if (idx != activePlayerIndex && idx < selectedPlayerCount) {
           transferTargetIndex = idx;
           transferAmount = 0;
-          amountNextState = STATE_GAME_TRANSFER_SUM;  // после суммы → подтверждение перевода
+          amountNextState = STATE_GAME_TRANSFER_SUM;
           setMenuState(STATE_GAME_SUM_PRESET);
         }
       }
+      break;
+
+    case STATE_GAME_PLAYER_FINISH:
+      if (key == "E") {
+        setMenuState(STATE_GAME_PLAYERMENU);
+        break;
+      }
+
+      if (key == "N") {
+        players[activePlayerIndex].balance = 0;
+        players[activePlayerIndex].eliminated = true;
+        // lastAction.valid = false;
+        saveGameState();
+        checkAutoEndGame();  // ← вдруг он последний
+        setMenuState(STATE_GAME_WAITCARD);
+      }
+      char buf[16];
+      snprintf(buf, sizeof(buf), "Игрок %d", activePlayerIndex + 1);
+      uiShowPlayerFinish(buf);
       break;
 
 
@@ -371,7 +354,7 @@ void menuHandleKey(String key) {
       if (key == "N" && transferAmount > 0) {
         // 1. Жёсткий лимит операции
         if (transferAmount > maxOperationAmount) {
-          uiShowGame_Result("Ошибка!", "Лимит операции");
+          uiShowGame_Result("Ошибка!", "Лимит операции", "");
           setMenuState(STATE_GAME_RESULT);
           break;
         }
@@ -385,7 +368,7 @@ void menuHandleKey(String key) {
         if (amountNextState == STATE_GAME_BANK_GET) {
           long allowed = settings.maxBalance - players[activePlayerIndex].balance;
           if (transferAmount > allowed) {
-            uiShowGame_Result("Ошибка!", "Лимит баланса");
+            uiShowGame_Result("Ошибка!", "Лимит баланса", "");
             setMenuState(STATE_GAME_RESULT);
             break;
           }
@@ -408,52 +391,76 @@ void menuHandleKey(String key) {
       }
 
       if (key == "N" && transferAmount > 0) {
-
         long realAmount = 0;
-        char l2[32], l3[32];
+        char l2[32], l3[32], l4[32];
 
         switch (menuState) {
 
           case STATE_GAME_TRANSFER_SUM:
+            // 🔥 НОВОЕ: перевод всем игрокам
+            if (transferTargetIndex == -1) {
+              realAmount = doTransferAll(activePlayerIndex, transferAmount);
+              if (!gameActive) {
+                transferAmount = 0;
+                break;
+              }
+              if (realAmount > 0) {
+                long realPerPlayer = realAmount / (selectedPlayerCount - 1);
+                snprintf(l2, sizeof(l2), "Игрок %d:", activePlayerIndex + 1);
+                snprintf(l3, sizeof(l3), "По %ld%s каждому", realPerPlayer, names[settings.currency]);
+                snprintf(l4, sizeof(l4), "Всего: %ld%s", realAmount, names[settings.currency]);
+              }
+              break;
+            }
             realAmount = doTransfer(activePlayerIndex, transferTargetIndex, transferAmount);
-
+            if (!gameActive) {
+              transferAmount = 0;
+              break;  // ← выходим из case, НЕ рисуем свои экраны
+            }
             if (realAmount > 0) {
-              snprintf(l2, sizeof(l2), "Игрок %d → %d",
+              snprintf(l2, sizeof(l2), "Игрок %d >> %d",
                        activePlayerIndex + 1,
                        transferTargetIndex + 1);
-              snprintf(l3, sizeof(l3), "Сумма: %ld", realAmount);
+              snprintf(l3, sizeof(l3), "Сумма: %ld%s", realAmount, names[settings.currency]);
             }
             break;
 
           case STATE_GAME_BANK_PAY:
             realAmount = doPayBank(activePlayerIndex, transferAmount);
-
+            if (!gameActive) {
+              transferAmount = 0;
+              break;  // ← выходим из case, НЕ рисуем свои экраны
+            }
             if (realAmount > 0) {
               snprintf(l2, sizeof(l2), "Оплата банку");
-              snprintf(l3, sizeof(l3), "Сумма: %ld", realAmount);
+              snprintf(l3, sizeof(l3), "Сумма: %ld%s", realAmount, names[settings.currency]);
             }
             break;
 
           case STATE_GAME_BANK_GET:
             realAmount = doGetBank(activePlayerIndex, transferAmount);
-
+            if (!gameActive) {
+              transferAmount = 0;
+              break;  // ← выходим из case, НЕ рисуем свои экраны
+            }
             if (realAmount > 0) {
               snprintf(l2, sizeof(l2), "Получено");
-              snprintf(l3, sizeof(l3), "Сумма: %ld", realAmount);
+              snprintf(l3, sizeof(l3), "Сумма: %ld%s", realAmount, names[settings.currency]);
             }
             break;
         }
 
         // Универсальная обработка ошибок
         if (realAmount == 0) {
-          uiShowGame_Result("Ошибка!", "Операция невозможна");
+          uiShowGame_Result("Ошибка!", "Операция невозможна", "");
           transferAmount = 0;
           setMenuState(STATE_GAME_RESULT);
           break;
         }
+        if (!gameActive) break;  // ← выходим из case, НЕ рисуем свои экраны
 
         // Успех
-        uiShowGame_Result(l2, l3);
+        uiShowGame_Result(l2, l3, l4);
         transferAmount = 0;
         saveGameState();
         setMenuState(STATE_GAME_RESULT);
@@ -461,21 +468,15 @@ void menuHandleKey(String key) {
 
       break;
 
+    case STATE_GAME_FINISH:
+      if (key == "N") {
+        gameActive = false; 
+        setMenuState(STATE_MAIN_MENU);
+      }
+      break;
 
     case STATE_GAME_RESULT:
       if (key == "N") setMenuState(STATE_GAME_PLAYERMENU);
-      break;
-
-    case STATE_GAME_UNDO:
-      if (key == "*") {
-        undoLastAction();
-        saveGameState();
-        uiShowGame_Result("ОТМЕНЕНО", "Действие отменено");
-        setMenuState(STATE_GAME_RESULT);
-      }
-      if (key == "E" || key == "#") {
-        setMenuState(STATE_GAME_WAITCARD);
-      }
       break;
 
     case STATE_GAME_BALANCES:
@@ -483,21 +484,14 @@ void menuHandleKey(String key) {
         setMenuState(returnFromBalances);
       }
       break;
-    case STATE_GAME_CONFIRM_LARGE:
 
+    case STATE_GAME_CONFIRM_LARGE:
       if (key == "E") {
-        // Отмена — возвращаемся к ручному вводу
         setMenuState(STATE_GAME_SUM_MANUAL);
         uiShowGame_SumManual(transferAmount);
         break;
       }
-
-      if (key == "N") {
-        // Подтверждено — продолжаем операцию
-        setMenuState(amountNextState);
-        break;
-      }
-
+      if (key == "N") {setMenuState(amountNextState);break;}
       break;
   }
 }
