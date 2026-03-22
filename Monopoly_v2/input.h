@@ -1,9 +1,0 @@
-#pragma once
-#include <Arduino.h>
-
-void inputInit();
-void inputUpdate();
-
-int batteryPercent(float v);
-float readBatteryVoltage();
-
