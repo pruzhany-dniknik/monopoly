@@ -169,88 +169,20 @@ void menuInit() {
   delay(500);
 }
 
-
 // ---------------------------------------------------------
 // ОБНОВЛЕНИЕ ЭКРАНОВ И ТАЙМЕРОВ
 // ---------------------------------------------------------
 void menuUpdate() {
   DateTime now = safeNow();  // безопасное чтение времени
   switch (menuState) {
-      
-    case STATE_GAME_WAITCARD:
+   
+case STATE_GAME_WAITCARD:
       {
-        static uint32_t lastAnim = 0;
-        static bool visible = true;
-        static uint32_t lastGameTime = 0;
-        static uint32_t lastBattery = 0;
-        static uint32_t lastClock = 0;
-        uint32_t nowMs = millis();
-
-        // --- 1. Мигание строки "Ожидание карты" ---
-        if (nowMs - lastAnim > 510) {
-          lastAnim = nowMs;
-          visible = !visible;
-
-          u8g2.setDrawColor(0);
-          u8g2.drawBox(4, 26, 120, 12);  // очистить строку
-          u8g2.setDrawColor(1);
-          if (visible)
-          u8g2.drawUTF8(4, 36, "Ожидание карты");
-          u8g2.sendBuffer();
-        }
-
-        // --- 2. Обновление времени игры (раз в 1 сек) ---
-        if (nowMs - lastGameTime > 1000) {
-          lastGameTime = nowMs;
-
-          uint32_t sec = getGameSeconds();
-          uint32_t h = sec / 3600;
-          uint32_t m = (sec / 60) % 60;
-          uint32_t s = sec % 60;
-
-          char buf[32];
-          snprintf(buf, sizeof(buf), "Время игры: %02lu:%02lu:%02lu", h, m, s);
-
-          u8g2.setDrawColor(0);
-          u8g2.drawBox(4, 12, 120, 12);
-          u8g2.setDrawColor(1);
-          u8g2.drawUTF8(4, 24, buf);
-          u8g2.sendBuffer();
-        }
-
-        // --- 3. Обновление батареи (раз в 2 сек) ---
-        if (nowMs - lastBattery > 2222) {
-          lastBattery = nowMs;
-
-          float v = readBatteryVoltage();
-          int p = batteryPercent(v);
-
-          char buf[16];
-          snprintf(buf, sizeof(buf), "[%d%%]", p);
-
-          u8g2.setDrawColor(0);
-          u8g2.drawBox(80, 51, 40, 12);
-          u8g2.setDrawColor(1);
-          u8g2.drawUTF8(80, 60, buf);
-          u8g2.sendBuffer();
-        }
-
-        // --- 4. Обновление текущего времени (раз в 60 сек) ---
-        if (nowMs - lastClock > 60005) {
-          lastClock = nowMs;
-          DateTime now = safeNow();
-          char buf[16];
-          snprintf(buf, sizeof(buf), "%02d:%02d", now.hour(), now.minute());
-          u8g2.setDrawColor(0);
-          u8g2.drawBox(80, 0, 40, 12);
-          u8g2.setDrawColor(1);
-          u8g2.drawUTF8(80, 10, buf);
-          u8g2.sendBuffer();
-        }
+        uint32_t gameSec = getGameSeconds();
+        uiShowGame_WaitCard(now, gameSec);
         break;
       }
-
-
+    
     case STATE_GAME_TRANSFER_SELECTPLAYER:
       uiShowGame_SelectPlayer();
       break;
