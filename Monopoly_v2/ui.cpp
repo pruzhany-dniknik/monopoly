@@ -232,7 +232,6 @@ void uiShowNewGame_RegCardOK(int playerIndex, byte uid[4]) {
   snprintf(line2, sizeof(line2), "Игрок %d", playerIndex + 1);
   snprintf(line3, sizeof(line3), "UID: %02X %02X %02X %02X",
            uid[0], uid[1], uid[2], uid[3]);
-
   drawScreen("КАРТА ПРИНЯТА",
              line2,
              line3,
@@ -251,7 +250,6 @@ void uiShowNewGame_RegCardError() {
 void uiShowNewGame_StartBalance(int balance) {
   char line2[64];
   snprintf(line2, sizeof(line2), "[ %d ]", balance);
-
   drawScreen("СТАРТ КАПИТАЛ",
              line2,
              "<> +-500",
@@ -262,10 +260,8 @@ void uiShowNewGame_StartBalance(int balance) {
 void uiShowNewGame_Confirm(int players, int balance) {
   char line2[64];
   char line3[64];
-
   snprintf(line2, sizeof(line2), "Игроков: %d", players);
   snprintf(line3, sizeof(line3), "Капитал: %d", balance);
-
   drawScreen("ПОДТВЕРЖДЕНИЕ",
              line2,
              line3,
@@ -276,113 +272,48 @@ void uiShowNewGame_Confirm(int players, int balance) {
 // ---------------------------------------------------------
 // ИГРОВОЙ РЕЖИМ
 // ---------------------------------------------------------
-// void uiShowGame_WaitCard(DateTime now, uint32_t gameSeconds) {
-//   char header[64];
-//   uint32_t minutes = gameSeconds / 60;
-//   uint32_t hours = minutes / 60;
 
-//   char gameTime[16];
-//   if (hours == 0)
-//     snprintf(gameTime, sizeof(gameTime), "%02lu:%02lu", minutes, gameSeconds % 60);
-//   else
-//     snprintf(gameTime, sizeof(gameTime), "%02lu:%02lu", hours, minutes % 60);
-
-//   char nowStr[16];
-//   snprintf(nowStr, sizeof(nowStr), "%02d:%02d", now.hour(), now.minute());
-//   snprintf(header, sizeof(header), "ИГРА: %s    %s", gameTime, nowStr);
-
-//   if (millis() - lastBatteryCheck > eventTimeout) {  // раз в 2 секунды
-//     float v = readBatteryVoltage();
-//     cachedBatteryPercent = batteryPercent(v);
-//     lastBatteryCheck = millis();
-//   }
-
-//   const char* left = "[#] Меню";
-//   char right[16];
-//   snprintf(right, sizeof(right), "[%d%%]", cachedBatteryPercent);
-
-//   const int width = 21;  // ширина строки в символах
-//   int spaces = width - strlen(left) - strlen(right);
-//   if (spaces < 1) spaces = 1;
-
-//   char bottom[32];
-//   snprintf(bottom, sizeof(bottom), "%s%*s%s", left, spaces, "", right);
-
-//   drawScreen(header,
-//              "Приложите карту...",
-//              "",
-//              "",
-//              bottom);
-// }
-// void uiShowGame_WaitCard(DateTime now, uint32_t gameSeconds) {
-
-//   char nowStr[16];
-//   snprintf(nowStr, sizeof(nowStr), "%02d:%02d", now.hour(), now.minute());
-//   char header[64];
-//   snprintf(header, sizeof(header), "МОНОПОЛИЯ      %s", nowStr);
-//   uint32_t h = gameSeconds / 3600;
-//   uint32_t m = (gameSeconds / 60) % 60;
-//   uint32_t s = gameSeconds % 60;
-//   char gameTime[32];
-//   snprintf(gameTime, sizeof(gameTime),
-//            "Время игры: %02lu:%02lu:%02lu", h, m, s);
-//   static uint32_t lastAnim = 0;
-//   static int dots = 0;
-//   if (millis() - lastAnim > 500) {   // скорость анимации
-//     dots = (dots + 1) % 4;           // 0,1,2,3
-//     lastAnim = millis();
-//   }
-//   char waitStr[32];
-//   snprintf(waitStr, sizeof(waitStr), "Ожидание карты%.*s", dots, "...");
-//   const char* empty = "____________________";
-//   if (millis() - lastBatteryCheck > eventTimeout) {
-//     float v = readBatteryVoltage();
-//     cachedBatteryPercent = batteryPercent(v);
-//     lastBatteryCheck = millis();
-//   }
-//   const char* left = "[#] Меню ";
-//   char right[16];
-//   snprintf(right, sizeof(right), "[%d%%]", cachedBatteryPercent);
-//   const int width = 21;  // ширина строки в символах
-//   int spaces = width - strlen(left) - strlen(right);
-//   if (spaces < 1) spaces = 1;
-//   char bottom[32];
-//   snprintf(bottom, sizeof(bottom), "%s%*s%s", left, spaces, "", right);
-//   drawScreen(
-//     header,
-//     gameTime,
-//     waitStr,
-//     empty,
-//     bottom
-//   );
-// }
 void uiShowGame_WaitCard(DateTime now, uint32_t gameSeconds) {
-  u8g2.clearBuffer();
-
-  // Заголовок
   char nowStr[16];
   snprintf(nowStr, sizeof(nowStr), "%02d:%02d", now.hour(), now.minute());
-  char header[32];
+  char header[64];
   snprintf(header, sizeof(header), "МОНОПОЛИЯ      %s", nowStr);
-
-  u8g2.drawFrame(0, 0, 128, 64);
-  u8g2.drawBox(0, 0, 128, 12);
-  u8g2.setDrawColor(0);
-  u8g2.drawUTF8(4, 10, header);
-  u8g2.setDrawColor(1);
-
-  // Время игры (будет обновляться отдельно)
-  u8g2.drawUTF8(4, 24, "Время игры: --:--:--");
-
-  // Ожидание карты (будет мигать)
-  u8g2.drawUTF8(4, 36, "Ожидание карты");
-
-  // Нижняя строка (будет обновляться батарея)
-  u8g2.drawUTF8(4, 60, "[#] Меню      [--%] ");
-
-  u8g2.sendBuffer();
+  uint32_t h = gameSeconds / 3600;
+  uint32_t m = (gameSeconds / 60) % 60;
+  uint32_t s = gameSeconds % 60;
+  char gameTime[32];
+  snprintf(gameTime, sizeof(gameTime),
+           "Время игры: %02lu:%02lu:%02lu", h, m, s);
+  static uint32_t lastAnim = 0;
+  static int dots = 0;
+  if (millis() - lastAnim > 500) {   // скорость анимации
+    dots = (dots + 1) % 4;           // 0,1,2,3
+    lastAnim = millis();
+  }
+  char waitStr[32];
+  snprintf(waitStr, sizeof(waitStr), "Ожидание карты%.*s", dots, "...");
+  const char* empty = "____________________";
+  if (millis() - lastBatteryCheck > eventTimeout) {
+    float v = readBatteryVoltage();
+    cachedBatteryPercent = batteryPercent(v);
+    lastBatteryCheck = millis();
+  }
+  const char* left = "[#] Меню ";
+  char right[16];
+  snprintf(right, sizeof(right), "[%d%%]", cachedBatteryPercent);
+  const int width = 21;  // ширина строки в символах
+  int spaces = width - strlen(left) - strlen(right);
+  if (spaces < 1) spaces = 1;
+  char bottom[32];
+  snprintf(bottom, sizeof(bottom), "%s%*s%s", left, spaces, "", right);
+  drawScreen(
+    header,
+    gameTime,
+    waitStr,
+    empty,
+    bottom
+  );
 }
-
 
 void uiShowGame_PlayerMenu(const char* name, int balance) {
   char header[64];
