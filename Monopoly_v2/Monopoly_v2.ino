@@ -16,6 +16,7 @@ void setup() {
     LittleFS.begin();
   }
   Serial.println("LittleFS init...");
+
   delay(20);
   EEPROM.begin(128);
   Serial.println("EEPROM init...");
@@ -29,6 +30,7 @@ void setup() {
   delay(200);
   menuInit();
   Serial.println("menu init...");
+  Serial.swap();    // перенос UART на D7 (RX) и D10 (TX)
   delay(100);
 }
 

@@ -2,15 +2,13 @@
 #include "menu.h"
 #include "players.h"
 #include "ui.h"
-#include <SoftwareSerial.h>
 
-SoftwareSerial nanoSerial(12, 16);
 
 String inputLine;
 
 void inputInit() {
-  nanoSerial.begin(19200);
   Serial.begin(19200);
+  
   delay(500);
 }
 
@@ -21,8 +19,8 @@ uint8_t pos = 0;
 
 void inputUpdate() {
 
-  while (nanoSerial.available()) {
-    char c = nanoSerial.read();
+  while (Serial.available()) {
+    char c = Serial.read();
 
     // конец строки
     if (c == '\n' || c == '\r') {
@@ -31,6 +29,7 @@ void inputUpdate() {
         processLine(buf);
         pos = 0;
       }
+
       continue;
     }
 
@@ -43,8 +42,8 @@ void inputUpdate() {
   }
 }
 void processLine(const char* line) {
-  Serial.print("LINE: ");
-  Serial.println(line);
+  // Serial.print("LINE: ");
+  // Serial.println(line);
 
   if (strncmp(line, "KEY ", 4) == 0) {
     menuHandleKey(line + 4);
