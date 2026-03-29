@@ -8,7 +8,9 @@
 
 #define SETTINGS_MAGIC 0xCAFEBABE
 #define SETTINGS_VERSION 1
-#define FW_VERSION "1.0.5"
+#define FW_VERSION "2.13"
+
+
 
 extern int startBalance;                  // Стартовый капитал
 extern const unsigned long eventTimeout;  // Таймаут для событий (мс)

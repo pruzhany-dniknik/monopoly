@@ -8,7 +8,7 @@ String inputLine;
 
 void inputInit() {
   Serial.begin(19200);
-  
+
   delay(500);
 }
 
@@ -18,7 +18,14 @@ uint8_t pos = 0;
 
 
 void inputUpdate() {
-
+  // Если аппаратный буфер переполнен (например, >200 байт ожидают), сбрасываем его
+  if (Serial.available() > 200) {
+    // Просто читаем и выбрасываем все данные, чтобы освободить буфер
+    while (Serial.available()) Serial.read();
+    // Можно вывести сообщение об ошибке (но осторожно, чтобы не зациклить)
+    // Serial.println("UART overflow flushed");
+    return;
+  }
   while (Serial.available()) {
     char c = Serial.read();
 

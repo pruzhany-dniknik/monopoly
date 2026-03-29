@@ -115,8 +115,8 @@ void showSplash() {
              "Банковский терминал",
              "  DNikNik Edition",
              "--------------------",
-             "   ver.2.42 beta");
-  delay(2000);
+             "   ver.2.5 beta");
+  
 }
 
 // ---------------------------------------------------------
@@ -326,14 +326,15 @@ void uiShowGame_WaitCard(DateTime now, uint32_t gameSeconds) {
   char gameTime[32];
   snprintf(gameTime, sizeof(gameTime),
            "Время игры: %02lu:%02lu:%02lu", h, m, s);
-  static uint32_t lastAnim = 0;
-  static int dots = 0;
-  if (millis() - lastAnim > 500) {   // скорость анимации
-    dots = (dots + 1) % 4;           // 0,1,2,3
-    lastAnim = millis();
-  }
-  char waitStr[32];
-  snprintf(waitStr, sizeof(waitStr), "Ожидание карты%.*s", dots, "...");
+  // static uint32_t lastAnim = 0;
+  // static int dots = 0;
+  // if (millis() - lastAnim > 500) {   // скорость анимации
+  //   dots = (dots + 1) % 4;           // 0,1,2,3
+  //   lastAnim = millis();
+  // }
+  // char waitStr[32];
+  // snprintf(waitStr, sizeof(waitStr), "Ожидание карты%.*s", dots, "...");
+  const char* waitStr = "Ожидание карты... ";
   const char* empty = "____________________";
   if (millis() - lastBatteryCheck > eventTimeout) {
     float v = readBatteryVoltage();
@@ -462,9 +463,9 @@ lastDraw = millis();
 //  РУЧНОЙ ВВОД
 // ---------------------------------------------------------
 void uiShowGame_SumManual(long amount) {
-  static uint32_t lastDraw = 0;
-if (millis() - lastDraw < 150) return;  // ~6 FPS
-lastDraw = millis();
+//   static uint32_t lastDraw = 0;
+// if (millis() - lastDraw < 150) return;  // ~6 FPS
+// lastDraw = millis();
 
   char line2[64];
   snprintf(line2, sizeof(line2), "Сумма: %ld", amount);
@@ -477,9 +478,9 @@ lastDraw = millis();
 //  ПОДТВЕРЖДЕНИЯ СУММЫ
 // ---------------------------------------------------------
 void uiShowGame_EnterAmount(long amount) {
-  static uint32_t lastDraw = 0;
-if (millis() - lastDraw < 150) return;  // ~6 FPS
-lastDraw = millis();
+//   static uint32_t lastDraw = 0;
+// if (millis() - lastDraw < 150) return;  // ~6 FPS
+// lastDraw = millis();
 
   char line2[64];
   snprintf(line2, sizeof(line2), "Сумма: %ld%s", amount, names[settings.currency]);
@@ -503,9 +504,9 @@ void uiShowConfirmLarge(long amount) {
 // РЕЗУЛЬТАТЫ
 // ---------------------------------------------------------
 void uiShowGame_Result(const char* line1, const char* line2, const char* line3) {
-  static uint32_t lastDraw = 0;
-if (millis() - lastDraw < 150) return;  // ~6 FPS
-lastDraw = millis();
+//   static uint32_t lastDraw = 0;
+// if (millis() - lastDraw < 150) return;  // ~6 FPS
+// lastDraw = millis();
 
   drawScreen("РЕЗУЛЬТАТ",
              line1,
@@ -560,9 +561,9 @@ lastDraw = millis();
 //   drawScreen("БАЛАНСЫ ИГРОКОВ:", l2, l3, l4, l5);
 // }
 void uiShowGame_Balances(int count, int balances[]) {
-  static uint32_t lastDraw = 0;
-if (millis() - lastDraw < 150) return;  // ~6 FPS
-lastDraw = millis();
+//   static uint32_t lastDraw = 0;
+// if (millis() - lastDraw < 150) return;  // ~6 FPS
+// lastDraw = millis();
 
   const int leftX = 4;    // позиция левой колонки
   const int rightX = 70;  // позиция правой колонки

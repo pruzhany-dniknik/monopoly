@@ -1,7 +1,8 @@
 #include <SPI.h>
 #include <MFRC522.h>
 #include <Keypad.h>
-#include <EEPROM.h>
+#include <avr/wdt.h>
+// #include <EEPROM.h>
 
 #define SS_PIN 10
 #define RST_PIN 9
@@ -29,6 +30,9 @@ byte colPins[COLS] = { 2, 3, 4, 5 };
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 String lastUID = "";       // последний считанный UID
 bool cardPresent = false;  // флаг "карта сейчас поднесена"
+
+unsigned long lastSuccessfulRead = 0;
+const unsigned long RFID_RESET_TIMEOUT = 20000;  // 20 секунд
 
 void beepTone(int freq, int dur) {
   tone(BUZZER_PIN, freq, dur);
@@ -72,7 +76,7 @@ void beepCard() {
 // подсветка
 bool backlightOn = true;
 byte levels[] = { 0, 20, 50, 160, 255 };
-int levelIndex = 3;  // стартуем с 70%
+int levelIndex = 2;
 unsigned long lastKeyTime = 0;
 const unsigned long AUTO_OFF_MS = 2UL * 60UL * 1000UL;  // 5 минут
 bool autoDimmed = false;
@@ -86,27 +90,29 @@ void fadeTo(byte target) {
     delay(3);  // скорость плавности
   }
   currentPWM = target;
+  lastSuccessfulRead = millis();
 }
 
 void onF1Pressed() {
   levelIndex++;
   if (levelIndex > 4) levelIndex = 0;
-  // analogWrite(PIN_BACKLIGHT, levels[levelIndex]);
+
   byte target = levels[levelIndex];
+  // analogWrite(PIN_BACKLIGHT, levels[target]);
   fadeTo(target);
-  EEPROM.update(0, levelIndex);
+  // EEPROM.update(0, levelIndex);
 }
 
 
 void setup() {
   Serial.begin(19200);
-
+  wdt_enable(WDTO_2S);  // сброс через 2 секунды, если не сбросить таймер
   // EEPROM.begin();
 
   pinMode(BUZZER_PIN, OUTPUT);
   digitalWrite(BUZZER_PIN, LOW);
-  // читаем сохранённый уровень
-  levelIndex = EEPROM.read(0);
+
+  // levelIndex = EEPROM.read(0);// читаем сохранённый уровень
   if (levelIndex > 4) levelIndex = 4;
   pinMode(PIN_BACKLIGHT, OUTPUT);
   digitalWrite(PIN_BACKLIGHT, LOW);
@@ -116,13 +122,14 @@ void setup() {
 
   SPI.begin();
   mfrc522.PCD_Init();
+  lastSuccessfulRead = millis();
 }
 // ----------------------------------------------------------------------------------------------
 void loop() {
   // --- RFID ---
   if (mfrc522.PICC_IsNewCardPresent()) {
     if (mfrc522.PICC_ReadCardSerial()) {
-
+      lastSuccessfulRead = millis();
       // собираем UID в строку
       String uid = "";
       for (byte i = 0; i < mfrc522.uid.size; i++) {
@@ -155,6 +162,9 @@ void loop() {
       cardPresent = false;
       lastUID = "";
     }
+    if (millis() - lastSuccessfulRead > RFID_RESET_TIMEOUT) {
+        mfrc522.PCD_Init();
+        lastSuccessfulRead = millis(); }
   }
 
   // автоотключение подсветки
@@ -186,4 +196,5 @@ void loop() {
     Serial.print("KEY ");
     Serial.println(key);
   }
+  wdt_reset();  // обнуляет счётчик, перезагрузки не будет
 }
