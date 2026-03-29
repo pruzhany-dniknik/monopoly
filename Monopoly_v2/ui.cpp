@@ -276,44 +276,6 @@ void uiShowNewGame_Confirm(int players, int balance) {
 // ---------------------------------------------------------
 // ИГРОВОЙ РЕЖИМ
 // ---------------------------------------------------------
-// void uiShowGame_WaitCard(DateTime now, uint32_t gameSeconds) {
-//   char header[64];
-//   uint32_t minutes = gameSeconds / 60;
-//   uint32_t hours = minutes / 60;
-
-//   char gameTime[16];
-//   if (hours == 0)
-//     snprintf(gameTime, sizeof(gameTime), "%02lu:%02lu", minutes, gameSeconds % 60);
-//   else
-//     snprintf(gameTime, sizeof(gameTime), "%02lu:%02lu", hours, minutes % 60);
-
-//   char nowStr[16];
-//   snprintf(nowStr, sizeof(nowStr), "%02d:%02d", now.hour(), now.minute());
-//   snprintf(header, sizeof(header), "ИГРА: %s    %s", gameTime, nowStr);
-
-//   if (millis() - lastBatteryCheck > eventTimeout) {  // раз в 2 секунды
-//     float v = readBatteryVoltage();
-//     cachedBatteryPercent = batteryPercent(v);
-//     lastBatteryCheck = millis();
-//   }
-
-//   const char* left = "[#] Меню";
-//   char right[16];
-//   snprintf(right, sizeof(right), "[%d%%]", cachedBatteryPercent);
-
-//   const int width = 21;  // ширина строки в символах
-//   int spaces = width - strlen(left) - strlen(right);
-//   if (spaces < 1) spaces = 1;
-
-//   char bottom[32];
-//   snprintf(bottom, sizeof(bottom), "%s%*s%s", left, spaces, "", right);
-
-//   drawScreen(header,
-//              "Приложите карту...",
-//              "",
-//              "",
-//              bottom);
-// }
 void uiShowGame_WaitCard(DateTime now, uint32_t gameSeconds) {
 
   char nowStr[16];
@@ -326,15 +288,8 @@ void uiShowGame_WaitCard(DateTime now, uint32_t gameSeconds) {
   char gameTime[32];
   snprintf(gameTime, sizeof(gameTime),
            "Время игры: %02lu:%02lu:%02lu", h, m, s);
-  // static uint32_t lastAnim = 0;
-  // static int dots = 0;
-  // if (millis() - lastAnim > 500) {   // скорость анимации
-  //   dots = (dots + 1) % 4;           // 0,1,2,3
-  //   lastAnim = millis();
-  // }
-  // char waitStr[32];
-  // snprintf(waitStr, sizeof(waitStr), "Ожидание карты%.*s", dots, "...");
-  const char* waitStr = "Ожидание карты... ";
+  
+  const char* waitStr = "   Ожидание карты ";
   const char* empty = "____________________";
   if (millis() - lastBatteryCheck > eventTimeout) {
     float v = readBatteryVoltage();

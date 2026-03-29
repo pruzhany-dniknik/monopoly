@@ -26,8 +26,6 @@ void setup() {
   EEPROM.begin(128);
   Serial.println("EEPROM init...");
   delay(100);
-  // Serial.print("UART BUFER:  ");
-  // Serial.println(SERIAL_RX_BUFFER_SIZE);
   settingsLoad();  // загружаем настройки
   uiInit();
   unsigned long start = micros();
