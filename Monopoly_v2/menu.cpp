@@ -20,7 +20,8 @@ int selectedStartBalance = 1500;
 int transferTargetIndex = -1;
 long transferAmount = 0;
 long presetAmounts[5] = { 100, 250, 500, 1000, 2000 };
-
+int winnerIndex = -1;
+long winnerBalance = 0;
 bool helpMode = false;
 int helpPageIndex = 0;
 HelpPage helpPages[] = {
@@ -50,20 +51,6 @@ unsigned long getGameSeconds() {
 DateTime safeNow() {
   if (rtc_ok) return rtc.now();
   return DateTime(2026, 1, 1, 0, 0, 0);  // нули, если RTC нет
-}
-
-// ---------------------------------------------------------
-// Чтение секунд напрямую из DS1307 (для проверки работы)
-// ---------------------------------------------------------
-uint8_t readSecondsRaw() {
-  Wire.beginTransmission(0x68);
-  Wire.write(0x00);
-  if (Wire.endTransmission() != 0) return 0xFF;
-
-  Wire.requestFrom(0x68, 1);
-  if (!Wire.available()) return 0xFF;
-
-  return Wire.read();
 }
 
 // ---------------------------------------------------------
@@ -169,24 +156,78 @@ void menuInit() {
   delay(500);
 }
 
-
-// ---------------------------------------------------------
-// ОБНОВЛЕНИЕ ЭКРАНОВ И ТАЙМЕРОВ
-// ---------------------------------------------------------
 void menuUpdate() {
   switch (menuState) {
 
     case STATE_GAME_WAITCARD:
       {
-        static uint32_t lastScreenRedraw = 0;
+        // static uint32_t lastAnim = 0;
+        // static bool visible = true;
+        static uint32_t lastGameTime = 0;
+        static uint32_t lastBattery = 0;
+        static uint32_t lastClock = 0;
         uint32_t nowMs = millis();
-        if (nowMs - lastScreenRedraw >= 1000) {
-          lastScreenRedraw = nowMs;
-          uint32_t gameSec = getGameSeconds();
-          uiShowGame_WaitCard(safeNow(), gameSec);
+
+        // --- Мигание строки "Ожидание карты" (раз в 510 мс) ---
+        // if (nowMs - lastAnim > 510) {
+        //   lastAnim = nowMs;
+        //   visible = !visible;
+        //   u8g2.setDrawColor(0);
+        //   u8g2.drawBox(4, 26, 120, 12);  // очистить строку
+        //   u8g2.setDrawColor(1);
+        //   if (visible) {
+        //     u8g2.drawUTF8(4, 36, "Ожидание карты");
+        //   }
+        //   u8g2.sendBuffer();
+        // }
+
+        // --- Обновление времени игры (раз в 1 сек) ---
+        if (nowMs - lastGameTime > 1000) {
+          lastGameTime = nowMs;
+          uint32_t sec = getGameSeconds();
+          uint32_t h = sec / 3600;
+          uint32_t m = (sec / 60) % 60;
+          uint32_t s = sec % 60;
+          char buf[32];
+          snprintf(buf, sizeof(buf), "Время игры: %02lu:%02lu:%02lu", h, m, s);
+          u8g2.setDrawColor(0);
+          u8g2.drawBox(4, 12, 120, 12);  // очистить строку времени
+          u8g2.setDrawColor(1);
+          u8g2.drawUTF8(4, 24, buf);
+          u8g2.sendBuffer();
+        }
+
+        // --- Обновление батареи  ---
+        if (nowMs - lastBattery > 10030) {
+          lastBattery = nowMs;
+          float v = readBatteryVoltage();
+          int p = batteryPercent(v);
+          cachedBatteryPercent = p;
+          char buf[16];
+          snprintf(buf, sizeof(buf), "[%d%%]", p);
+          u8g2.setDrawColor(0);
+          u8g2.drawBox(82, 51, 40, 12);  // очистить область батареи
+          u8g2.setDrawColor(1);
+          u8g2.drawUTF8(82, 60, buf);
+          u8g2.sendBuffer();
+        }
+
+        // --- Обновление текущего времени (раз в 60 сек) ---
+        if (nowMs - lastClock > 60000) {
+          lastClock = nowMs;
+          DateTime now = safeNow();
+          char buf[16];
+          snprintf(buf, sizeof(buf), "%02d:%02d", now.hour(), now.minute());
+          u8g2.setDrawColor(1);
+          u8g2.drawBox(80, 0, 45, 12);  // очистить область часов
+          u8g2.setDrawColor(0);
+          u8g2.drawUTF8(94, 10, buf);
+          u8g2.setDrawColor(1);
+          u8g2.sendBuffer();
         }
         break;
       }
+
     default:
       break;
   }
@@ -199,15 +240,15 @@ void handleCardInNewGameWizard(byte uid[4]) {
       return;
     }
   }
-
   memcpy(players[currentRegisteringPlayer].uid, uid, 4);
-
   static char nameBuf[16];
   snprintf(nameBuf, sizeof(nameBuf), "Игрок %d", currentRegisteringPlayer + 1);
-  players[currentRegisteringPlayer].name = strdup(nameBuf);
 
+  // players[currentRegisteringPlayer].name = strdup(nameBuf);
+  static char playerNames[8][16];
+  snprintf(playerNames[currentRegisteringPlayer], 16, "Игрок %d", currentRegisteringPlayer + 1);
+  players[currentRegisteringPlayer].name = playerNames[currentRegisteringPlayer];
   uiShowNewGame_RegCardOK(currentRegisteringPlayer, uid);
-
   currentRegisteringPlayer++;
 }
 
@@ -220,7 +261,15 @@ void setMenuState(MenuState newState) {
   DateTime now = safeNow();  // безопасное чтение времени
 
   switch (newState) {
-
+    case STATE_GAME_FINISH:
+      {
+        char line2[32];
+        char line3[32];
+        snprintf(line2, sizeof(line2), "Игрок %d", winnerIndex + 1);
+        snprintf(line3, sizeof(line3), "Баланс: %ld%s", winnerBalance, names[settings.currency]);
+        uiShowGame_Result("ПОБЕДИТЕЛЬ:", line2, line3);
+        break;
+      }
     case STATE_SETTINGS_MENU:
       uiShowSettingsMenu();
       break;
@@ -244,6 +293,10 @@ void setMenuState(MenuState newState) {
       uiShowSettingsCurrency();
       break;
 
+    case STATE_SETTINGS_LANGUAGE:
+      uiShowSettingsLanguage();
+      break;
+
     case STATE_SETTINGS_RTC_TEST:
       uiShowRTCTest();
       break;
@@ -253,7 +306,6 @@ void setMenuState(MenuState newState) {
       break;
 
     case STATE_SETTINGS_SAVE:
-      // Serial.println("Save begin...");
       settingsSave();
       drawScreen("Настройки", "Сохранено!", "", "", "");
       delay(1000);
@@ -293,17 +345,11 @@ void setMenuState(MenuState newState) {
 
     // --- Игровой режим ---
     case STATE_GAME_WAITCARD:
-      {
-        // static uint32_t lastScreenUpdate = 0;
-        // uint32_t nowMs = millis();
-        // // Обновляем экран не чаще 5 раз в секунду (200 мс)
-        // if (nowMs - lastScreenUpdate > 200) {
-        //   lastScreenUpdate = nowMs;
-        //   uint32_t gameSec = getGameSeconds();
-        //   uiShowGame_WaitCard(now, gameSec);
-        // }
-        break;
-      }
+
+      // float v = readBatteryVoltage();// При входе обновляем значение батареи (пока отключим)
+      // cachedBatteryPercent = batteryPercent(v);
+      uiShowGame_WaitCard(now, getGameSeconds());
+      break;
 
     case STATE_GAME_PLAYERMENU:
       uiShowGame_PlayerMenu(players[activePlayerIndex].name,

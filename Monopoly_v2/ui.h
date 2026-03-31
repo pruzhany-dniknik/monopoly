@@ -23,16 +23,15 @@ void uiShowRTCTest() ;
 void uiShowBatteryTest();
 void uiShowServiceMenu();
 void uiShowSettingsCurrency();
+void uiShowSettingsLanguage();
 void uiShowSettingsSysInfo();
 extern RTC_DS1307 rtc;
-// Отрисовка заголовка игрового режима (время игры + текущее время)
-void drawGameHeader(DateTime now, uint32_t gameSeconds);
 
 void showSplash();
-// --- Экраны главного меню ---
-// void uiShowSplash();
+void showLogo() ;
 void uiShowMainMenu(bool hasSave);
 void drawHelpQR();
+
 // --- Мастер новой игры ---
 void uiShowNewGame_NumPlayers(int count);
 void uiShowNewGame_RegCard(int playerIndex);

@@ -2,9 +2,9 @@
 
 // Значения по умолчанию
 int startBalance = 1500;                  // стартовый капитал
-const unsigned long eventTimeout = 2000;  // 2 секунды
+// const unsigned long eventTimeout = 2000;  // 2 секунды
 int selectedPlayerCount = 2;              // по умолчанию 2 игрока
-const long maxOperationAmount = 8000;     // или любое твоё значение
+const long maxOperationAmount = 10000;     // максималльно допустимая сумма разовой операции
 uint32_t lastBatteryCheck = 0;
 int cachedBatteryPercent = 100;
 
@@ -25,7 +25,8 @@ Settings settings = {
   5000,   // largeOpThreshold
   true,   // autoEndGame
   0,      // currency
-  false  // wifi
+  false,   // wifi
+  0       // language: 0 = русский
 };
 
 extern int selectedPlayerCount;
@@ -59,14 +60,12 @@ bool canAdd(long current, long delta, long maxLimit) {
 
 // пометка выбывшего игрока при нулевом балансе
 void playerEliminated(int idx) {
-  // Можно добавить флаг eliminated, если понадобится
-  // Пока просто оставляем баланс = 0
+  players[idx].eliminated = true;
 }
 
 // пометка автозавершения игры
 bool checkAutoEndGame() {
   if (!settings.autoEndGame) return false;
-
   int alive = 0;
   int lastAlive = -1;
 
@@ -78,25 +77,17 @@ bool checkAutoEndGame() {
   }
 
   if (alive <= 1) {
-    char line2[32];
-    snprintf(line2, sizeof(line2), "Игрок %d", lastAlive + 1);
-    long winnerBalance = players[lastAlive].balance;
-    char line3[32];
-    snprintf(line3, sizeof(line3), "Баланс: %ld", winnerBalance);
-    uiShowGame_Result("ПОБЕДИТЕЛЬ", line2, line3);
-
-    // сброс игры
+    winnerIndex = lastAlive;  // Сохраняем данные победителя
+    winnerBalance = players[lastAlive].balance;
+    // Сброс игры
     for (int i = 0; i < selectedPlayerCount; i++) {
       players[i].balance = 0;
     }
-
     if (LittleFS.exists("/game.dat")) { LittleFS.remove("/game.dat"); }
     gameActive = false;
-    // lastAction.valid = false;
-    setMenuState(STATE_GAME_FINISH);  // ПЕРЕХОД В ФИНАЛ
+    setMenuState(STATE_GAME_FINISH);  // Переход в состояние финала
     return true;
   }
-
   return false;
 }
 
@@ -133,49 +124,63 @@ long doTransfer(int from, int to, long amount) {
   return amount;  // ← возвращаем реальную сумму
 }
 
-long doTransferAll(int from, long amount) {
-  if (amount <= 0) return 0;
-  if (amount > maxOperationAmount) return 0;
-  if (amount > settings.maxBalance) return 0;
+TransferAllResult doTransferAll(int from, long amount) {
+  TransferAllResult result = { 0, 0 };
+  if (amount <= 0) return result;
+  if (amount > maxOperationAmount) return result;
 
-  long available = players[from].balance;
-  if (available <= 0) return 0;
-
-  // 1. Считаем количество активных получателей
-  int count = 0;
+  int count = 0; // Подсчёт активных получателей
   for (int i = 0; i < selectedPlayerCount; i++) {
     if (i == from) continue;
     if (players[i].eliminated) continue;
     if (settings.autoEndGame && players[i].balance == 0) continue;
     count++;
   }
-  if (count == 0) return 0;
+  if (count == 0) return result;
 
-  // 2. Считаем сумму на игрока
-  long perPlayer = available / count;
-  long remainder = available % count;
+  long totalNeeded = amount * count;
+  long available = players[from].balance;
+  if (available <= 0) return result;
 
-  if (perPlayer <= 0) return 0;  // даже по 1 не можем дать
+  // Если у отправителя не хватает на всех, распределяем весь баланс поровну
+  if (available < totalNeeded) {
+    long perPlayer = available / count;
+    if (perPlayer == 0) return result;
+    totalNeeded = perPlayer * count;
+    amount = perPlayer;
+  }
 
-  // 3. Списываем всё у отправителя
-  players[from].balance = 0;
-  playerEliminated(from);
-
-  // 4. Начисляем только активным игрокам
+  // Проверка лимитов баланса у получателей
   for (int i = 0; i < selectedPlayerCount; i++) {
     if (i == from) continue;
     if (players[i].eliminated) continue;
     if (settings.autoEndGame && players[i].balance == 0) continue;
-    long allowed = settings.maxBalance - players[i].balance;
-    long give = perPlayer;
-    if (give > allowed) give = allowed;
-
-    players[i].balance += give;
+    if (players[i].balance + amount > settings.maxBalance) {
+      return result;  // операция невозможна
+    }
   }
-  long realTotal = perPlayer * count;
+
+  // Списываем с отправителя
+  players[from].balance -= totalNeeded;
+  if (players[from].balance == 0) {
+    playerEliminated(from);
+  }
+
+  // Начисляем получателям
+  for (int i = 0; i < selectedPlayerCount; i++) {
+    if (i == from) continue;
+    if (players[i].eliminated) continue;
+    if (settings.autoEndGame && players[i].balance == 0) continue;
+    players[i].balance += amount;
+  }
+
+  result.totalGiven = totalNeeded;
+  result.activeCount = count;
+
   checkAutoEndGame();
-  return realTotal;
+  return result;
 }
+
 
 long doPayBank(int from, long amount) {
   if (amount <= 0) return 0;
@@ -201,7 +206,6 @@ long doPayBank(int from, long amount) {
 
 long doGetBank(int to, long amount) {
   if (amount <= 0) return 0;
-  if (amount > settings.maxBalance) return 0;  // Лимит максимальной суммы
   if (amount > maxOperationAmount) return 0;
   long allowed = settings.maxBalance - players[to].balance;
   if (allowed <= 0) return 0;
@@ -269,9 +273,9 @@ void settingsLoad() {
     // Игровые настройки
     settings.magic = SETTINGS_MAGIC;
     settings.version = SETTINGS_VERSION;
-    settings.maxBalance = 30004;
+    settings.maxBalance = 30000;
     settings.confirmLargeOps = true;
-    settings.largeOpThreshold = 5003;
+    settings.largeOpThreshold = 5000;
     settings.autoEndGame = true;
 
     // Системные настройки

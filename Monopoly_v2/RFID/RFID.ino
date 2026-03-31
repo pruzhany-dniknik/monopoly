@@ -123,11 +123,35 @@ void setup() {
   SPI.begin();
   mfrc522.PCD_Init();
   lastSuccessfulRead = millis();
+  // Serial.println(mfrc522.PCD_ReadRegister(mfrc522.VersionReg));
 }
+void resetRFID() {
+  mfrc522.PCD_Init();
+  delay(50);
+  mfrc522.PCD_AntennaOn();  // Включаем антенну
+  delay(50);
+}
+
+// Функция проверки работоспособности сканера
+bool isRFIDWorking() {
+  // Пробуем прочитать фиктивную карту (если есть)
+  if (mfrc522.PICC_IsNewCardPresent()) {
+    if (mfrc522.PICC_ReadCardSerial()) {
+      mfrc522.PICC_HaltA();
+      mfrc522.PCD_StopCrypto1();
+      return true;
+    }
+  }
+  // Альтернативный способ: проверить регистры MFRC522
+  byte version = mfrc522.PCD_ReadRegister(mfrc522.VersionReg);
+  return (version == 0x92);
+}
+
 // ----------------------------------------------------------------------------------------------
 void loop() {
   // --- RFID ---
   if (mfrc522.PICC_IsNewCardPresent()) {
+    delay(10);
     if (mfrc522.PICC_ReadCardSerial()) {
       lastSuccessfulRead = millis();
       // собираем UID в строку
@@ -143,6 +167,7 @@ void loop() {
         beepCard();
         Serial.print("CARD ");
         Serial.println(uid);
+        delay(20);
         if (autoDimmed) {
           fadeTo(levels[levelIndex]);
           autoDimmed = false;
@@ -163,8 +188,13 @@ void loop() {
       lastUID = "";
     }
     if (millis() - lastSuccessfulRead > RFID_RESET_TIMEOUT) {
-        mfrc522.PCD_Init();
-        lastSuccessfulRead = millis(); }
+       if (!isRFIDWorking()) {  // Если не работает — сброс
+      resetRFID();
+      Serial.println("Сканер не отвечает — сброс...");
+    }
+      // resetRFID();
+      lastSuccessfulRead = millis();
+    }
   }
 
   // автоотключение подсветки
@@ -195,6 +225,7 @@ void loop() {
 
     Serial.print("KEY ");
     Serial.println(key);
+    delay(20);
   }
   wdt_reset();  // обнуляет счётчик, перезагрузки не будет
 }

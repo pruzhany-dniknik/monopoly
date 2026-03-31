@@ -3,14 +3,7 @@
 #include "players.h"
 #include "ui.h"
 
-
-String inputLine;
-
-void inputInit() {
-  Serial.begin(19200);
-
-  delay(500);
-}
+// String inputLine;
 
 #define BUF_SIZE 64
 char buf[BUF_SIZE];
@@ -18,12 +11,8 @@ uint8_t pos = 0;
 
 
 void inputUpdate() {
-  // Если аппаратный буфер переполнен (например, >200 байт ожидают), сбрасываем его
-  if (Serial.available() > 200) {
-    // Просто читаем и выбрасываем все данные, чтобы освободить буфер
+  if (Serial.available() > 500) {
     while (Serial.available()) Serial.read();
-    // Можно вывести сообщение об ошибке (но осторожно, чтобы не зациклить)
-    // Serial.println("UART overflow flushed");
     return;
   }
   while (Serial.available()) {
@@ -36,7 +25,6 @@ void inputUpdate() {
         processLine(buf);
         pos = 0;
       }
-
       continue;
     }
 

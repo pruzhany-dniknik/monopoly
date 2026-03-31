@@ -1,9 +1,7 @@
 // LOLIN(WeMos) D1 R1
+// Monopoly_v2.ino
 
-// Увеличить буфер UART в ESP8266
-// #define SERIAL_TX_BUFFER_SIZE 256
-#define SERIAL_RX_BUFFER_SIZE 256
-
+#define SERIAL_RX_BUFFER_SIZE 512
 #include <LittleFS.h>
 #include <EEPROM.h>
 #include "players.h"
@@ -12,16 +10,16 @@
 #include "menu.h"
 
 void setup() {
-  inputInit();
+  Serial.begin(19200);
   Serial.println(".");
   Serial.println("Start game...");
+  delay(100);
   // Запускаем файловую систему
   if (!LittleFS.begin()) {
     LittleFS.format();
     LittleFS.begin();
   }
   Serial.println("LittleFS init...");
-
   delay(100);
   EEPROM.begin(128);
   Serial.println("EEPROM init...");
@@ -29,10 +27,11 @@ void setup() {
   settingsLoad();  // загружаем настройки
   uiInit();
   unsigned long start = micros();
-  showSplash();     // заставка 
+  showSplash();  // заставка
   unsigned long duration = micros() - start;
   Serial.print("drawScreen time: ");
-  Serial.println(duration);
+  Serial.print(duration / 1000);
+  Serial.println(" ms ");
   delay(2000);
   loadGameState();  // Загружаем игру, если есть сохранение
   Serial.println("Load setting...");

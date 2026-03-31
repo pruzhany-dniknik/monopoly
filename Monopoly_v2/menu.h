@@ -37,12 +37,12 @@ enum MenuState {
   STATE_SETTINGS_BATTERY_TEST,
   STATE_SETTINGS_SYSTEM,
   STATE_SETTINGS_CURRENCY,
+  STATE_SETTINGS_LANGUAGE,
   STATE_SETTINGS_SYSINFO,
   STATE_SETTINGS_GAME,
   STATE_SETTINGS_GAME_EDIT_MAXBALANCE,
   STATE_SETTINGS_GAME_EDIT_THRESHOLD,
   STATE_SETTINGS_SAVE
-
 };
 
 extern MenuState menuState;
@@ -52,29 +52,20 @@ extern MenuState amountNextState;
 extern long presetAmounts[5];
 extern bool rtc_ok;
 extern bool gameActive;
-
 extern int currentRegisteringPlayer;
 extern int selectedStartBalance;
-
 extern int transferTargetIndex;
 extern long transferAmount;
-
-
-// Инициализация меню
+extern int winnerIndex;
+extern long winnerBalance;
 void menuInit();
 void i2cBusRecovery();
-// Обновление (таймеры, время игры, RTC)
 void menuUpdate();
 bool initRTC();
 uint32_t calcFirmwareCRC();
-
-// Обработка клавиш
 void menuHandleKey(String key);
-
-// Переход в состояние
 void setMenuState(MenuState newState);
 void handleCardInNewGameWizard(byte uid[4]);
-
 
 struct HelpPage {
   const char* l1;
@@ -84,13 +75,9 @@ struct HelpPage {
   const char* l5;
 };
 
-
 extern HelpPage helpPages[];
 extern int helpPageCount;
 extern int helpPageIndex;
 extern bool helpMode;
 
-// меню настроек
-void settingsInit();
-void settingsUpdate();
-// void settingsHandleKey(String key);
+

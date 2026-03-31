@@ -3,7 +3,7 @@
 #include "qr_bitmap.h"
 #include "input.h"
 
-U8G2_ST7920_128X64_F_SW_SPI u8g2(U8G2_R0, 14, 12, 15, 0); // D1 Wemos UNO
+U8G2_ST7920_128X64_F_SW_SPI u8g2(U8G2_R0, 14, 12, 15, 0);  // D1 Wemos UNO
 
 // ---------------------------------------------------------
 // ИНИЦИАЛИЗАЦИЯ
@@ -35,7 +35,6 @@ void drawScreen(const char* line1,
   u8g2.drawUTF8(4, 36, line3);
   u8g2.drawUTF8(4, 48, line4);
   u8g2.drawUTF8(4, 60, line5);
-
   u8g2.sendBuffer();
 }
 
@@ -110,13 +109,37 @@ void drawHelpQR() {
 // ---------------------------------------------------------
 // ЗАСТАВКА
 // ---------------------------------------------------------
+
+void showLogo() {
+  u8g2.clearBuffer();
+  
+  // Центрируем логотип 60x60 на экране 128x64
+  int x = (128 - logoWidth) / 2;   // (128-60)/2 = 34
+  int y = (64 - logoHeight) / 2;   // (64-60)/2 = 2
+  
+  // Рисуем логотип по пикселям
+  for (int py = 0; py < logoHeight; py++) {
+    for (int px = 0; px < logoWidth; px++) {
+      int byteIndex = (py * ((logoWidth + 7) / 8)) + (px >> 3);
+      uint8_t b = pgm_read_byte(&epd_bitmap_monopolia[byteIndex]);
+      bool bit = b & (0x80 >> (px & 7));
+      if (bit) {
+        u8g2.drawPixel(x + px, y + py);
+      }
+    }
+  }
+  
+  u8g2.sendBuffer();
+}
+
 void showSplash() {
+  showLogo();
+  delay(2000);
   drawScreen("$$$  МОНОПОЛИЯ  $$$",
              "Банковский терминал",
              "  DNikNik Edition",
              "--------------------",
-             "   ver.2.5 beta");
-  
+             "   ver.2.61 beta");
 }
 
 // ---------------------------------------------------------
@@ -125,7 +148,7 @@ void showSplash() {
 void uiShowMainMenu(bool hasSave) {
   drawScreen("ГЛАВНОЕ МЕНЮ",
              "[1] Начать игру",
-             hasSave ? "[2] Продолжить игру" : "    нет сохранения...",
+             hasSave ? "[2] Продолжить игру" : "    ...",
              "[3] Настройки",
              "[4] Справка");
 }
@@ -175,7 +198,7 @@ void uiShowSettingsSystem() {
   drawScreen(
     "СИСТЕМНЫЕ НАСТРОЙКИ",
     "[1] Валюта",
-    "[2] ...",
+    "[2] Интерфейс",
     "[3] ...",
     "[4] Информация");
 }
@@ -189,6 +212,16 @@ void uiShowSettingsCurrency() {
     "[1] -    [3] Е",
     "[2] $    [4] р",
     "[Ent] Ok");
+}
+
+void uiShowSettingsLanguage() {
+  const char* currentLang = (settings.language == 0) ? "Русский" : "English";
+  drawScreen(
+    "НАСТРОЙКИ ЯЗЫКА",
+    currentLang,
+    "[1] Русский",
+    "[2] English",
+    "[Ent] Назад");
 }
 
 void uiShowSettingsSysInfo() {
@@ -288,16 +321,12 @@ void uiShowGame_WaitCard(DateTime now, uint32_t gameSeconds) {
   char gameTime[32];
   snprintf(gameTime, sizeof(gameTime),
            "Время игры: %02lu:%02lu:%02lu", h, m, s);
-  
-  const char* waitStr = "   Ожидание карты ";
+
+  const char* waitStr = "   Ожидание карты  ";
   const char* empty = "____________________";
-  if (millis() - lastBatteryCheck > eventTimeout) {
-    float v = readBatteryVoltage();
-    cachedBatteryPercent = batteryPercent(v);
-    lastBatteryCheck = millis();
-  }
   const char* left = "[#] Меню ";
   char right[16];
+  // snprintf(right, sizeof(right), "[%d%%]", batteryPercent(readBatteryVoltage()));
   snprintf(right, sizeof(right), "[%d%%]", cachedBatteryPercent);
   const int width = 21;  // ширина строки в символах
   int spaces = width - strlen(left) - strlen(right);
@@ -309,44 +338,11 @@ void uiShowGame_WaitCard(DateTime now, uint32_t gameSeconds) {
     gameTime,
     waitStr,
     empty,
-    bottom
-  );
+    bottom);
 }
-// void uiShowGame_WaitCard(DateTime now, uint32_t gameSeconds) {
-//   u8g2.clearBuffer();
-
-//   // Заголовок
-//   char nowStr[16];
-//   snprintf(nowStr, sizeof(nowStr), "%02d:%02d", now.hour(), now.minute());
-//   char header[32];
-//   snprintf(header, sizeof(header), "МОНОПОЛИЯ      %s", nowStr);
-
-//   u8g2.drawFrame(0, 0, 128, 64);
-//   u8g2.drawBox(0, 0, 128, 12);
-//   u8g2.setDrawColor(0);
-//   u8g2.drawUTF8(4, 10, header);
-//   u8g2.setDrawColor(1);
-
-//   // Время игры (будет обновляться отдельно)
-//   u8g2.drawUTF8(4, 24, "Время игры: --:--:--");
-
-//   // Ожидание карты (будет мигать)
-//   u8g2.drawUTF8(4, 36, "Ожидание карты");
-
-//   // Нижняя строка (будет обновляться батарея)
-//   u8g2.drawUTF8(4, 60, "[#] Меню      [--%] ");
-
-//   u8g2.sendBuffer();
-// }
-
 
 void uiShowGame_PlayerMenu(const char* name, int balance) {
   char header[64];
-  static uint32_t lastDraw = 0;
-if (millis() - lastDraw < 150) return;  // ~6 FPS
-lastDraw = millis();
-
-  // snprintf(header, sizeof(header), "%s : %d", name ? name : "Игрок", balance, names[settings.currency]);
   snprintf(header, sizeof(header), "%s : %d%s",
            name ? name : "Игрок",
            balance,
@@ -362,10 +358,6 @@ lastDraw = millis();
 // ЭКРАН ВЫБОРА ИГРОКА
 // ---------------------------------------------------------
 void uiShowGame_SelectPlayer() {
-  static uint32_t lastDraw = 0;
-if (millis() - lastDraw < 150) return;  // ~6 FPS
-lastDraw = millis();
-
   char line3[64];
   char line4[64];
   line3[0] = 0;
@@ -394,10 +386,6 @@ lastDraw = millis();
 //  ФИКСИРОВАННЫЕ СУММЫ
 // ---------------------------------------------------------
 void uiShowGame_SumPreset() {
-  static uint32_t lastDraw = 0;
-if (millis() - lastDraw < 150) return;  // ~6 FPS
-lastDraw = millis();
-
   char l2[32];
   char l3[32];
   char l4[32];
@@ -411,46 +399,45 @@ lastDraw = millis();
 
   snprintf(l4, sizeof(l4), "[3] %ld%s  [*] Другая",
            presetAmounts[2], names[settings.currency]);
-  drawScreen(" ВВОД СУММЫ", l2, l3, l4, "[Ent]OK   [Esc]Назад");
+  drawScreen("ВВОД СУММЫ",
+             l2,
+             l3,
+             l4,
+             "[Ent]OK   [Esc]Назад");
 }
 
 // ---------------------------------------------------------
 //  РУЧНОЙ ВВОД
 // ---------------------------------------------------------
 void uiShowGame_SumManual(long amount) {
-//   static uint32_t lastDraw = 0;
-// if (millis() - lastDraw < 150) return;  // ~6 FPS
-// lastDraw = millis();
-
   char line2[64];
   snprintf(line2, sizeof(line2), "Сумма: %ld", amount);
-
-  drawScreen("РУЧНОЙ ВВОД СУММЫ", line2, "Введите сумму",
-    "[Ent] OK","[Esc] Назад");
+  drawScreen("РУЧНОЙ ВВОД СУММЫ",
+             line2,
+             "Введите сумму",
+             "[Ent] Подтвердить",
+             "[Esc] Отмена");
 }
 
 // ---------------------------------------------------------
 //  ПОДТВЕРЖДЕНИЯ СУММЫ
 // ---------------------------------------------------------
 void uiShowGame_EnterAmount(long amount) {
-//   static uint32_t lastDraw = 0;
-// if (millis() - lastDraw < 150) return;  // ~6 FPS
-// lastDraw = millis();
-
   char line2[64];
   snprintf(line2, sizeof(line2), "Сумма: %ld%s", amount, names[settings.currency]);
-
-  drawScreen("ВВОД СУММЫ", line2, "",
-             "[Ent] OK", "[Esc] Отмена");
+  drawScreen("ВВОД СУММЫ",
+             line2,
+             " ",
+             "[Ent] Подтвердить",
+             "[Esc] Отмена");
 }
 
 void uiShowConfirmLarge(long amount) {
   char line2[64];
   snprintf(line2, sizeof(line2), "Сумма: %ld%s", amount, names[settings.currency]);
-
   drawScreen("КРУПНАЯ ОПЕРАЦИЯ",
              line2,
-             "",
+             " ",
              "[Ent] Подтвердить",
              "[Esc] Отмена");
 }
@@ -459,10 +446,6 @@ void uiShowConfirmLarge(long amount) {
 // РЕЗУЛЬТАТЫ
 // ---------------------------------------------------------
 void uiShowGame_Result(const char* line1, const char* line2, const char* line3) {
-//   static uint32_t lastDraw = 0;
-// if (millis() - lastDraw < 150) return;  // ~6 FPS
-// lastDraw = millis();
-
   drawScreen("РЕЗУЛЬТАТ",
              line1,
              line2,
@@ -470,61 +453,11 @@ void uiShowGame_Result(const char* line1, const char* line2, const char* line3) 
              "[Ent] OK");
 }
 
-// void uiShowGame_Balances(int count, int balances[]) {
-//   char l2[64] = "";
-//   char l3[64] = "";
-//   char l4[64] = "";
-//   char l5[64] = "";
-//   char* lines[4] = { l2, l3, l4, l5 };
-
-//   const int colWidth = 10;  // ширина первой колонки (можно 10–14)
-//   int lineIndex = 0;
-
-//   for (int i = 0; i < count; i += 2) {
-//     if (lineIndex >= 4) break;
-
-//     char left[32], right[32];
-
-//  // Левая колонка
-//     if (balances[i] == 0 && settings.autoEndGame) {
-//         snprintf(left, sizeof(left), "%d:%s", i + 1, "выбыл");
-//     } else {
-//         snprintf(left, sizeof(left), "%d:%d%s",
-//                 i + 1,
-//                 balances[i],
-//                 names[settings.currency]);   // валюта
-//     }
-
-//     // Правая колонка
-//     if (i + 1 < count) {
-//         if (balances[i + 1] == 0 && settings.autoEndGame) {
-//             snprintf(right, sizeof(right), "%d:%s", i + 2, "выбыл");
-//         } else {
-//             snprintf(right, sizeof(right), "%d:%d%s",
-//                     i + 2,
-//                     balances[i + 1],
-//                     names[settings.currency]);   // валюта
-//         }
-
-//         snprintf(lines[lineIndex], 64, "%-*s %s", colWidth, left, right);
-//     } else {
-//         snprintf(lines[lineIndex], 64, "%s", left);
-//     }
-
-//     lineIndex++;
-//   }
-//   drawScreen("БАЛАНСЫ ИГРОКОВ:", l2, l3, l4, l5);
-// }
 void uiShowGame_Balances(int count, int balances[]) {
-//   static uint32_t lastDraw = 0;
-// if (millis() - lastDraw < 150) return;  // ~6 FPS
-// lastDraw = millis();
-
   const int leftX = 4;    // позиция левой колонки
   const int rightX = 70;  // позиция правой колонки
   const int startY = 24;  // первая строка
   const int stepY = 12;   // шаг между строками
-
   u8g2.clearBuffer();
   u8g2.drawFrame(0, 0, 128, 64);
   u8g2.drawBox(0, 0, 128, 12);
@@ -604,16 +537,8 @@ void uiShowPlayerFinish(const char* name) {
     "[Esc] Отмена");
 }
 
-DateTime safeNow();
-uint32_t getGameSeconds();
-
-void uiShowGame_WaitCardSimple() {
-  DateTime now = safeNow();         // safeNow() уже есть в menu.cpp, объявим extern
-  uint32_t sec = getGameSeconds();  // getGameSeconds() — глобальная функция
-  uiShowGame_WaitCard(now, sec);
-}
-
 void showBankruptFlash(int idx) {
+  setMenuState(STATE_GAME_WAITCARD);
   const char* text = "$$ БАНКРОТ $$";
   u8g2.setFont(u8g2_font_6x12_t_cyrillic);
   for (int i = 0; i < 4; i++) {
@@ -621,12 +546,11 @@ void showBankruptFlash(int idx) {
     u8g2.sendBuffer();
     delay(50);
     u8g2.setDrawColor(0);
-    u8g2.drawBox(3, 36, 120, 13);
+    u8g2.drawBox(3, 36, 80, 12);
     u8g2.setDrawColor(1);
     u8g2.sendBuffer();
     delay(50);
   }
-  uiShowGame_WaitCardSimple();
 }
 
 void uiShowRTCTest() {
